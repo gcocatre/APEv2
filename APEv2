@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright © 2013 - 2025 Guillaume Cocatre-Zilgien <gcocatre@gmail.com>
-# https://github.com/gcocatre/caudec
+# https://github.com/gcocatre/APEv2
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,13 +16,12 @@
 # Full APEv2 specification:
 # http://wiki.hydrogenaudio.org/index.php?title=APEv2_specification
 
-printUsage ()
-{
-	echo "${me} ${VERSION}: APEv2 tagger
+printUsage () {
+	echo "${Self_Name} ${Self_Version}: APEv2 tagger
 Copyright © 2013 - 2025 Guillaume Cocatre-Zilgien
-https://github.com/gcocatre/caudec
+https://github.com/gcocatre/APEv2
 
-Usage: $me [ PARAMETERS ] FILE(S)
+Usage: $Self_Name [ PARAMETERS ] FILE(S)
 List, set or remove tags in APEv2 files (.ape, .wv, .mpc, .tak…).
 Default action: list tags, with colored field names.
 
@@ -45,7 +44,7 @@ Tagging Parameters:
   -d F=P    dump value of tag item with field name F into file P; P may be a
             filename, or '-' to dump to STDOUT. This parameter may be used with
             any type of field (artwork, binary or text), and can only be used
-            on its own. When dumping artwork, ${me} will automatically append
+            on its own. When dumping artwork, ${Self_Name} will automatically append
             the correct file extension, if the provided filename (P) ends with
             a dot ('.').
 
@@ -68,7 +67,7 @@ Output Formatting Parameters:
 
 Notes about output modes:
 --------------------------------------------------------------------------------
-By default, $me prints tags in a colored, human readable format, with new line
+By default, $Self_Name prints tags in a colored, human readable format, with new line
 characters printed as is, NULL characters replaced with ' / ', artwork
 designated as 'artwork: <SIZE>' (byte size of the artwork) and binary data
 designated as 'data: <SIZE>' (byte size of the data).
@@ -90,7 +89,7 @@ values), write them as '\\x00'. The -z parameter uses those notations.
 When feeding tags via STDIN (-i), you must specify one FIELD=VALUE pair on each
 line. Write new lines and NULL chars as '\\n' and '\\x00', respectively.
 To read FIELD=VALUE pairs from a text file, simply run:
-\$ ${me} -i file.ape < metadata.txt
+\$ ${Self_Name} -i file.ape < metadata.txt
 
 In order to mark a tag item read-only with -t, -i, -a or -b, precede the field
 name with 'ro:', e.g.: -t \"ro:Artist=Daft Punk\". Read-only items cannot be
@@ -107,8 +106,7 @@ The full APEv2 specification can be found on the Hydrogenaudio Wiki:
 http://wiki.hydrogenaudio.org/index.php?title=APEv2_specification"
 }
 
-cleanExit ()
-{
+cleanExit () {
 	if [ -n "$nProcesses" ]; then
 		if [ $nProcesses -gt 1 ]; then
 			kill $( jobs -p ) >/dev/null 2>&1
@@ -120,8 +118,7 @@ cleanExit ()
 	exit $1
 }
 
-cleanAbort ()
-{
+cleanAbort () {
 	if [ -n "$nProcesses" ]; then
 		if [ $nProcesses -gt 1 ]; then
 			kill $( jobs -p ) >/dev/null 2>&1
@@ -132,15 +129,13 @@ cleanAbort ()
 	cleanExit $EX_INTERRUPT
 }
 
-debugMsg ()
-{
+debugMsg () {
 	if [ $debug = true ]; then
 		echo -e "${WG}DEBUG:${NM} $1" 1>&2
 	fi
 }
 
-printWarning ()
-{
+printWarning () {
 	if [ "$outputMode" = 'colors' ]; then
 		echo -e "${WG}Warning:${NM} $1" 1>&2
 	else
@@ -148,8 +143,7 @@ printWarning ()
 	fi
 }
 
-printError ()
-{
+printError () {
 	if [ "$outputMode" = 'colors' ]; then
 		echo -e "${KO}Error:${NM} $1" 1>&2
 	else
@@ -157,8 +151,7 @@ printError ()
 	fi
 }
 
-setColors ()
-{
+setColors () {
 	local boldCode='' colorCode=''
 
 	if [ "$outputMode" = 'colors' ]; then # default mode
@@ -209,21 +202,20 @@ setColors ()
 	fi
 }
 
-createTempDir ()
-{
+createTempDir () {
 	if [ -n "$tempDir" -a -d "$tempDir" -a -w "$tempDir" ]; then
 		return $EX_OK
 	fi
 
 	tempDir=''
 	if [ -n "$TMPDIR" -a -d "$TMPDIR" -a -w "$TMPDIR" ]; then
-		tempDir="$( TMPDIR="$TMPDIR" mktemp -d "${TMPDIR}/${me}.XXXXXXXX" )"
+		tempDir="$( TMPDIR="$TMPDIR" mktemp -d "${TMPDIR}/${Self_Name}.XXXXXXXX" )"
 	elif [ -d '/tmp' -a -w '/tmp' ]; then
-		tempDir="$( TMPDIR='/tmp' mktemp -d "/tmp/${me}.XXXXXXXX" )"
+		tempDir="$( TMPDIR='/tmp' mktemp -d "/tmp/${Self_Name}.XXXXXXXX" )"
 	elif [ -d '/dev/shm' -a -w '/dev/shm' ]; then
-		tempDir="$( TMPDIR='/dev/shm' mktemp -d "/dev/shm/${me}.XXXXXXXX" )"
+		tempDir="$( TMPDIR='/dev/shm' mktemp -d "/dev/shm/${Self_Name}.XXXXXXXX" )"
 	elif [ -d "$PWD" -a -w "$PWD" ]; then
-		tempDir="$( TMPDIR="$PWD" mktemp -d "${PWD}/${me}.XXXXXXXX" )"
+		tempDir="$( TMPDIR="$PWD" mktemp -d "${PWD}/${Self_Name}.XXXXXXXX" )"
 	fi
 	if [ -z "$tempDir" -o ! -d "$tempDir" -o ! -w "$tempDir" ]; then
 		printError "can't create temporary directory."
@@ -237,8 +229,7 @@ createTempDir ()
 	fi
 }
 
-createTempProcessDir ()
-{
+createTempProcessDir () {
 	tempProcessDir="${tempDir}/process.${pn}"
 	if [ -e "$tempProcessDir" ]; then
 		rm -rf "$tempProcessDir" >/dev/null 2>&1
@@ -246,8 +237,7 @@ createTempProcessDir ()
 	mkdir -p "$tempProcessDir"
 }
 
-checkBinary ()
-{
+checkBinary () {
 	local p rc=$EX_OK
 
 	for b in "$@"; do
@@ -269,8 +259,7 @@ checkBinary ()
 	return $rc
 }
 
-checkBinaries ()
-{
+checkBinaries () {
 	searchedBinaries=''
 	binaryMissing=false
 
@@ -288,8 +277,7 @@ checkBinaries ()
 	fi
 }
 
-startTimer ()
-{
+startTimer () {
 	if [ $gnudate = true ]; then
 		timer1="$( $datecmd '+%s.%N' )"
 	else
@@ -297,8 +285,7 @@ startTimer ()
 	fi
 }
 
-stopTimer ()
-{
+stopTimer () {
 	local seconds timer2
 
 	if [ $gnudate = true ]; then
@@ -310,8 +297,7 @@ stopTimer ()
 	printf "${WG}%s:${NM} %.3f seconds\n" "$1" $seconds 1>&2
 }
 
-readBinaryDecimalInteger ()
-{
+readBinaryDecimalInteger () {
 	local start="$1" length="$2" i=0
 
 	i="$( od -A n -j $start -N $length -i "$file" 2>/dev/null | tr -cd '0-9' )"
@@ -321,8 +307,7 @@ readBinaryDecimalInteger ()
 	esac
 }
 
-getHumanByteSize ()
-{
+getHumanByteSize () {
 	local bytes="$1"
 
 	if [ $bytes -lt 1024 ]; then
@@ -336,16 +321,14 @@ getHumanByteSize ()
 	fi
 }
 
-integerToBinaryData ()
-{
+integerToBinaryData () {
 	local h=''
 
 	h="$( printf "%08X" "$1" )"
 	echo -en "\x${h:6:2}\x${h:4:2}\x${h:2:2}\x${h:0:2}"
 }
 
-getFileSize ()
-{
+getFileSize () {
 	local file="$1" bytes
 
 	if [ ! -e "$file" ]; then
@@ -364,8 +347,7 @@ getFileSize ()
 	fi
 }
 
-getFilePortion ()
-{
+getFilePortion () {
 	local offset=$1 size=$2 tailSize=0
 
 	if [ "$apetagLocation" = 'bottom' ]; then
@@ -376,8 +358,7 @@ getFilePortion ()
 	fi
 }
 
-hasApetag ()
-{
+hasApetag () {
 	local preamble=''
 
 	if [ "$apetagPresent" = 'true' ]; then
@@ -426,8 +407,7 @@ hasApetag ()
 	fi
 }
 
-getApetagSize ()
-{
+getApetagSize () {
 	# tag size does NOT include the header, if present
 	if [ "$apetagLocation" = 'bottom' ]; then
 		tagSize="$( readBinaryDecimalInteger $(( footerOffset + 8 + 4 )) 4 )"
@@ -448,8 +428,7 @@ getApetagSize ()
 	debugMsg "tagSize=${tagSize}"
 }
 
-getApetagOffset ()
-{
+getApetagOffset () {
 	local preamble=''
 
 	if [ "$apetagLocation" = 'bottom' ]; then
@@ -476,8 +455,7 @@ getApetagOffset ()
 	fi
 }
 
-resetApetagProperties ()
-{
+resetApetagProperties () {
 	apetagPresent='false'
 	fileSize=$apetagOffset
 	tagSize=0
@@ -490,8 +468,7 @@ resetApetagProperties ()
 	hasFooter=false
 }
 
-initFileVars ()
-{
+initFileVars () {
 	debugMsg '--------------------------------------------------------------------------------'
 	debugMsg "file: \"${file}\""
 	fileSize="$( getFileSize "$file" )"
@@ -515,8 +492,7 @@ initFileVars ()
 	declare -a itemValues=()
 }
 
-removeApetag ()
-{
+removeApetag () {
 	local ec=$EX_OK tempFile=''
 
 	if [ "$apetagLocation" = 'bottom' ]; then
@@ -548,8 +524,7 @@ removeApetag ()
 	fi
 }
 
-writeNewApetag ()
-{
+writeNewApetag () {
 	local itemKey itemValue itemValueSize itemSize itemValueTypes=() fileDir='' tempDirLength p artworkFilenameSize=0 artworkFilepath artworkFilename binaryFilepath
 
 	sortedItemSizes=''
@@ -663,8 +638,7 @@ writeNewApetag ()
 	return $EX_OK
 }
 
-getItemsOffset ()
-{
+getItemsOffset () {
 	if [ "$apetagLocation" = 'bottom' ]; then
 		if [ $hasHeader = true ]; then
 			itemsOffset=$(( apetagOffset + 32 ))
@@ -677,8 +651,7 @@ getItemsOffset ()
 	debugMsg "itemsOffset=${itemsOffset}"
 }
 
-getNumberOfItems ()
-{
+getNumberOfItems () {
 	if [ "$apetagLocation" = 'bottom' ]; then
 		itemsCount="$( readBinaryDecimalInteger $(( footerOffset + 8 + 4 + 4 )) 4 )"
 	else
@@ -693,8 +666,7 @@ getNumberOfItems ()
 	debugMsg "itemsCount=${itemsCount}"
 }
 
-getItem ()
-{
+getItem () {
 	local itemValueSize=0 itemKeyOffset=0 char='' o=0 itemValueType='' itemSize itemIsBinary=false itemIsReadOnly=false p='' itemFilename='' itemDataSize=0
 
 	itemKey='' itemLowercaseKey='' itemValue=''
@@ -784,8 +756,7 @@ getItem ()
 	itemOffset=$(( o + itemValueSize ))
 }
 
-getItems ()
-{
+getItems () {
 	local ec=$EX_OK
 
 	itemOffset="$itemsOffset"
@@ -803,8 +774,7 @@ getItems ()
 	return $ec
 }
 
-removeItems ()
-{
+removeItems () {
 	local tempItemCount=0 deleteKeys='' p='' itemValue=''
 	declare -a tempItemKeys=()
 	declare -a tempItemLowercaseKeys=()
@@ -863,8 +833,7 @@ removeItems ()
 	unset tempItemKeys tempItemLowercaseKeys tempItemValues
 }
 
-addNewItems ()
-{
+addNewItems () {
 	local p=''
 
 	# itemsCount is either set by removeItems(), or equal to zero
@@ -879,8 +848,7 @@ addNewItems ()
 	done
 }
 
-listItems ()
-{
+listItems () {
 	local itemKey='' itemLowercaseKey='' itemValue='' itemValueSize=0 roPrefix='' artworkFilename='' p='' ppn=0
 
 	if [ -z "$sortedItemSizes" ]; then
@@ -993,8 +961,7 @@ listItems ()
 	esac
 }
 
-flushOutputQueue ()
-{
+flushOutputQueue () {
 	local oq=0
 
 	for ((oq=0; oq<nProcesses; oq++)); do
@@ -1009,8 +976,7 @@ flushOutputQueue ()
 	done
 }
 
-dumpItems ()
-{
+dumpItems () {
 	local itemValue='' itemValueSize=0 dumpFilePath='' someFieldNotFound=false artworkFilename='' artworkFileExtension=''
 
 	for (( k=0; k<dumpKeysCount; k++ )); do
@@ -1059,8 +1025,7 @@ dumpItems ()
 	fi
 }
 
-checkInputFieldValueFormat ()
-{
+checkInputFieldValueFormat () {
 	local string="$1"
 
 	if [ "$string" = "${string//=/@}" ]; then
@@ -1069,8 +1034,7 @@ checkInputFieldValueFormat ()
 	fi
 }
 
-checkInputFieldLength ()
-{
+checkInputFieldLength () {
 	local field="$1"
 
 	if [ ${#field} -lt 2 -o ${#field} -gt 255 ]; then
@@ -1079,8 +1043,7 @@ checkInputFieldLength ()
 	fi
 }
 
-checkInputFieldUnicity ()
-{
+checkInputFieldUnicity () {
 	local p='' key="$1" lowercaseKey="$2"
 
 	p="x${lowercaseKey}Y"
@@ -1091,8 +1054,7 @@ checkInputFieldUnicity ()
 	newTagString="${newTagString}${p}"
 }
 
-checkInputValueLength ()
-{
+checkInputValueLength () {
 	local field="$1" value="$2"
 
 	if [ ${#value} -lt 1 ]; then
@@ -1101,8 +1063,7 @@ checkInputValueLength ()
 	fi
 }
 
-doListAction ()
-{
+doListAction () {
 	local ec=$EX_OK
 
 	if hasApetag ; then
@@ -1118,8 +1079,7 @@ doListAction ()
 	return $ec
 }
 
-doDumpAction ()
-{
+doDumpAction () {
 	local ec=$EX_OK
 
 	if hasApetag ; then
@@ -1136,8 +1096,7 @@ doDumpAction ()
 	return $ec
 }
 
-doCopyAction ()
-{
+doCopyAction () {
 	local ec=$EX_OK
 
 	if hasApetag ; then
@@ -1168,8 +1127,7 @@ doCopyAction ()
 	return $ec
 }
 
-doWriteAction ()
-{
+doWriteAction () {
 	local ec=$EX_OK artworkFilename
 
 	if [ $removeAllTags = true ]; then
@@ -1214,8 +1172,7 @@ doWriteAction ()
 	return $ec
 }
 
-doAction ()
-{
+doAction () {
 	local ec=$EX_OK
 
 	initFileVars
@@ -1228,8 +1185,7 @@ doAction ()
 	return $ec
 }
 
-waitForJobs ()
-{
+waitForJobs () {
 	local jn ec=$EX_OK jec
 
 	for jn in $( jobs -p ); do
@@ -1243,9 +1199,8 @@ waitForJobs ()
 
 # main() ======================================================================
 
-me='APEv2'
-calledAs="${0##*/}"
-VERSION='1.0.3'
+declare -r Self_Name='APEv2'
+declare -r Self_Version='1.0.4'
 
 EX_OK=0             # successful termination
 EX_KO=1             # unsuccessful termination
@@ -1495,16 +1450,16 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 
 		h) printUsage ; cleanExit $EX_OK ;;
 
-		V) echo "$me $VERSION" ; cleanExit $EX_OK ;;
+		V) echo "$Self_Name $Self_Version" ; cleanExit $EX_OK ;;
 
-		*) printError "try '$me -h' for more information." ; cleanExit $EX_USAGE ;;
+		*) printError "try '$Self_Name -h' for more information." ; cleanExit $EX_USAGE ;;
 	esac
 done
 if [ -z "$action" ]; then action='list'; fi
 
 shift $(( OPTIND - 1 ))
 if [ $# -lt 1 ]; then
-	printWarning "no files specified on the command line; try '$me -h' for more information."
+	printWarning "no files specified on the command line; try '$Self_Name -h' for more information."
 	cleanExit $EX_USAGE
 fi
 
