@@ -126,7 +126,7 @@ cleanAbort () {
 		unset nProcesses
 	fi
 	echo
-	cleanExit $EX_INTERRUPT
+	cleanExit $Ex_Interrupt
 }
 
 debugMsg () {
@@ -204,7 +204,7 @@ setColors () {
 
 createTempDir () {
 	if [ -n "$tempDir" -a -d "$tempDir" -a -w "$tempDir" ]; then
-		return $EX_OK
+		return $Ex_Ok
 	fi
 
 	tempDir=''
@@ -222,10 +222,10 @@ createTempDir () {
 		if [ -n "$tempDir" -a -d "$tempDir" ]; then
 			rm -rf "$tempDir" >/dev/null 2>&1
 		fi
-		cleanExit $EX_IOERR
+		cleanExit $Ex_Io_Err
 	else
 		mkdir -p "${tempDir}/common" >/dev/null 2>&1
-		return $EX_OK
+		return $Ex_Ok
 	fi
 }
 
@@ -238,7 +238,7 @@ createTempProcessDir () {
 }
 
 checkBinary () {
-	local p rc=$EX_OK
+	local p rc=$Ex_Ok
 
 	for b in "$@"; do
 		p="x${b}Y"
@@ -248,11 +248,11 @@ checkBinary () {
 				foundBinaries="${foundBinaries}${p}"
 				continue
 			else
-				rc=$EX_KO binaryMissing=true
+				rc=$Ex_Ko binaryMissing=true
 				printWarning "binary \"${b}\" not found. Make sure it is in your \$PATH."
 			fi
 		elif [ -z "$foundBinaries" -o "$foundBinaries" = "${foundBinaries//$p/@}" ]; then # binary was previously searched, but not found
-			rc=$EX_KO
+			rc=$Ex_Ko
 		fi
 	done
 
@@ -265,15 +265,15 @@ checkBinaries () {
 
 	if ! which 'which' >/dev/null 2>&1 ; then
 		printWarning "binary \"which\" not found. Make sure it is in your \$PATH."
-		cleanExit $EX_OSFILE
+		cleanExit $Ex_Os_File
 	fi
 
 	checkBinary "$sedcmd" 'od' 'tr' 'cut' 'dd' 'mktemp' 'dirname' 'wc' 'sort' 'head' 'tail' 'base64' 'stat' 'kill'
 
 	if [ $binaryMissing = true ]; then
-		cleanExit $EX_OSFILE
+		cleanExit $Ex_Os_File
 	else
-		return $EX_OK
+		return $Ex_Ok
 	fi
 }
 
@@ -362,13 +362,13 @@ hasApetag () {
 	local preamble=''
 
 	if [ "$apetagPresent" = 'true' ]; then
-		return $EX_OK
+		return $Ex_Ok
 	elif [ "$apetagPresent" = 'false' ]; then
-		return $EX_KO
+		return $Ex_Ko
 	else
 		if [ $fileSize -le 64 ]; then
 			debugMsg 'no apetag present'
-			return $EX_KO
+			return $Ex_Ko
 		fi
 
 		# check the end of the file first
@@ -390,19 +390,19 @@ hasApetag () {
 		if [ "$preamble" = 'APETAGEX' ]; then
 			if [ "$apetagVersion" = '2000' ]; then
 				apetagPresent='true'
-				return $EX_OK
+				return $Ex_Ok
 			elif [ "$apetagVersion" = '-1' ]; then
 				printError "file \"$file\" is corrupted: invalid APE version number."
-				return $EX_DATAERR
+				return $Ex_Data_Err
 			else
 				printWarning "unsupported APE version (${apetagVersion})"
 				apetagPresent='false'
-				return $EX_KO
+				return $Ex_Ko
 			fi
 		else
 			apetagPresent='false'
 			debugMsg 'no apetag present'
-			return $EX_KO
+			return $Ex_Ko
 		fi
 	fi
 }
@@ -413,16 +413,16 @@ getApetagSize () {
 		tagSize="$( readBinaryDecimalInteger $(( footerOffset + 8 + 4 )) 4 )"
 		if [ "$tagSize" = '-1' ]; then
 			printError "file \"$file\" is corrupted: invalid tag size."
-			return $EX_DATAERR
+			return $Ex_Data_Err
 		elif [ $tagSize -lt 32 ]; then # smaller than the footer alone
 			printError "file \"$file\" is corrupted: tag size smaller than 32 bytes."
-			return $EX_DATAERR
+			return $Ex_Data_Err
 		fi
 	else
 		tagSize="$( readBinaryDecimalInteger $(( headerOffset + 8 + 4 )) 4 )"
 		if [ $tagSize -lt 0 ]; then # invalid value (minimum: 0, no tag items, no footer)
 			printError "file \"$file\" is corrupted: invalid tag size."
-			return $EX_DATAERR
+			return $Ex_Data_Err
 		fi
 	fi
 	debugMsg "tagSize=${tagSize}"
@@ -493,7 +493,7 @@ initFileVars () {
 }
 
 removeApetag () {
-	local ec=$EX_OK tempFile=''
+	local ec=$Ex_Ok tempFile=''
 
 	if [ "$apetagLocation" = 'bottom' ]; then
 		if which 'truncate' >/dev/null 2>&1 ; then
@@ -503,7 +503,7 @@ removeApetag () {
 		else
 			tempFile="${tempProcessDir}/tempfile"
 			head -c $apetagOffset "$file" 2>/dev/null | dd of="$tempFile" bs=$(( 8192 * 1024 )) >/dev/null 2>&1 ; ec=$?
-			if [ $ec -eq $EX_OK ]; then
+			if [ $ec -eq $Ex_Ok ]; then
 				rm -f "$file" >/dev/null 2>&1 &&
 				mv -f "$tempFile" "$file" >/dev/null 2>&1 ; ec=$?
 			fi
@@ -515,7 +515,7 @@ removeApetag () {
 		tempFile="${tempProcessDir}/tempfile"
 		tail -c $(( fileSize - (32 + tagSize) )) "$file" 2>/dev/null | dd of="$tempFile" bs=$(( 8192 * 1024 )) >/dev/null 2>&1 ; ec=$?
 		resetApetagProperties
-		if [ $ec -eq $EX_OK ]; then
+		if [ $ec -eq $Ex_Ok ]; then
 			rm -f "$file" >/dev/null 2>&1 &&
 			mv -f "$tempFile" "$file" >/dev/null 2>&1 ; ec=$?
 		fi
@@ -635,7 +635,7 @@ writeNewApetag () {
 		echo -en "\x00\x00\x00\x00\x00\x00\x00\x00" # reserved
 	} >> "$file"
 
-	return $EX_OK
+	return $Ex_Ok
 }
 
 getItemsOffset () {
@@ -660,7 +660,7 @@ getNumberOfItems () {
 
 	if [ $itemsCount -lt 0 ]; then
 		printError "file \"$file\" is corrupted: invalid number of items."
-		return $EX_DATAERR
+		return $Ex_Data_Err
 	fi
 
 	debugMsg "itemsCount=${itemsCount}"
@@ -674,12 +674,12 @@ getItem () {
 	itemValueSize="$( readBinaryDecimalInteger $itemOffset 4 )"
 	if [ $itemValueSize -lt 1 ]; then
 		printError "file \"$file\" is corrupted: invalid length of item value."
-		return $EX_DATAERR
+		return $Ex_Data_Err
 	fi
 	itemValueType="$( readBinaryDecimalInteger $(( itemOffset + 4 )) 4)"
 	if [ $itemValueType -lt 0 -o $itemValueType -gt 5 ]; then
 		printError "file \"$file\" is corrupted: invalid item flags ($itemValueType)."
-		return $EX_DATAERR
+		return $Ex_Data_Err
 	fi
 
 	itemKeyOffset=$(( itemOffset + 4 + 4 ))
@@ -689,19 +689,19 @@ getItem () {
 	itemKey="$( dd if="$file" bs=1 skip=$o count=255 2>/dev/null | LC_ALL=C tr '\0\n' '\1\2' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 1 2>/dev/null )"
 	if [ ${#itemKey} -lt 2 ]; then
 		printError "file \"$file\" is invalid: length of field name (${#itemKey}) should range from 2 to 255 characters."
-		return $EX_DATAERR
+		return $Ex_Data_Err
 	elif [ ${#itemKey} -eq 255 ]; then
 		char="$( readBinaryDecimalInteger $(( o + 255 )) 1 )"
 		if [ $char -ne 0 ]; then # the mandatory null char that separates the key from the value isn't there
 			printError "file \"$file\" is corrupted: NULL char missing between field name and item value."
-			return $EX_DATAERR
+			return $Ex_Data_Err
 		fi
 	fi
 	itemLowercaseKey="$( echo -En "$itemKey" | tr '[:upper:]' '[:lower:]' )"
 	p="x${itemLowercaseKey}Y"
 	if [ "$allKeys" != "${allKeys//$p/@}" ]; then
 		printError "file \"$file\" is invalid: it contains two or more items with the same field name (they must be unique)."
-		return $EX_DATAERR
+		return $Ex_Data_Err
 	fi
 	o=$(( o + ${#itemKey} + 1 ))
 
@@ -721,25 +721,25 @@ getItem () {
 			itemFilename="$( dd if="$file" bs=1 skip=$o count=255 2>/dev/null | LC_ALL=C tr '\0\n' '\1\2' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 1 2>/dev/null )"
 			if [ ${#itemFilename} -lt 5 ]; then
 				printError "file \"$file\" is invalid: length of cover art filename (${#itemFilename}) should range from 5 to 255 characters."
-				return $EX_DATAERR
+				return $Ex_Data_Err
 			elif [ ${#itemFilename} -eq 255 ]; then
 				char="$( readBinaryDecimalInteger $(( o + 255 )) 1 )"
 				if [ $char -ne 0 ]; then # the mandatory null char that separates the filename from the data isn't there
 					printError "file \"$file\" is corrupted: NULL char missing between filename and artwork data."
-					return $EX_DATAERR
+					return $Ex_Data_Err
 				fi
 			fi
 			itemDataSize=$(( itemValueSize - ${#itemFilename} - 1 ))
 			if [ $itemDataSize -lt 4 -o $itemDataSize -gt 1073741824 ]; then
 				printError "file \"$file\" is corrupted: invalid size (${itemDataSize} B) of cover art."
-				return $EX_DATAERR
+				return $Ex_Data_Err
 			fi
 			getFilePortion $(( o + ${#itemFilename} + 1 )) $itemDataSize > "${tempProcessDir}/artwork.${i}"
 			itemValue="artworkfilepath:${itemFilename}:${tempProcessDir}/artwork.${i}"
 		else # binary data
 			if [ $itemValueSize -lt 1 -o $itemValueSize -gt 1073741824 ]; then
 				printError "file \"$file\" is corrupted: invalid size (${itemValueSize} B) of binary data."
-				return $EX_DATAERR
+				return $Ex_Data_Err
 			fi
 			getFilePortion $o $itemValueSize > "${tempProcessDir}/binary.${i}"
 			itemValue="binaryfilepath:${tempProcessDir}/binary.${i}"
@@ -747,7 +747,7 @@ getItem () {
 	else
 		if [ $itemValueSize -lt 1 -o $itemValueSize -gt 1073741824 ]; then
 			printError "file \"$file\" is corrupted: invalid length (${itemValueSize}) of item value."
-			return $EX_DATAERR
+			return $Ex_Data_Err
 		fi
 		itemValue="$( dd if="$file" bs=1 skip=$o count=$itemValueSize 2>/dev/null | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C tr -d '\r' 2>/dev/null )"
 	fi
@@ -757,12 +757,12 @@ getItem () {
 }
 
 getItems () {
-	local ec=$EX_OK
+	local ec=$Ex_Ok
 
 	itemOffset="$itemsOffset"
 	for ((i=0; i<itemsCount; i++)); do
 		getItem; ec=$?
-		if [ $ec -eq $EX_OK ]; then
+		if [ $ec -eq $Ex_Ok ]; then
 			itemKeys[$i]="$itemKey"
 			itemLowercaseKeys[$i]="$itemLowercaseKey"
 			itemValues[$i]="$itemValue"
@@ -1021,7 +1021,7 @@ dumpItems () {
 	done
 
 	if [ $someFieldNotFound = true ]; then
-		return $EX_KO
+		return $Ex_Ko
 	fi
 }
 
@@ -1030,7 +1030,7 @@ checkInputFieldValueFormat () {
 
 	if [ "$string" = "${string//=/@}" ]; then
 		printError "-${o}: format must be FIELDNAME=VALUE."
-		cleanExit $EX_USAGE
+		cleanExit $Ex_Usage
 	fi
 }
 
@@ -1039,7 +1039,7 @@ checkInputFieldLength () {
 
 	if [ ${#field} -lt 2 -o ${#field} -gt 255 ]; then
 		printError "-${o}: length of field name \"$field\" (${#field}) is outside valid boundaries (2-255)"
-		cleanExit $EX_USAGE
+		cleanExit $Ex_Usage
 	fi
 }
 
@@ -1049,7 +1049,7 @@ checkInputFieldUnicity () {
 	p="x${lowercaseKey}Y"
 	if [ "$newTagString" != "${newTagString//$p/@}" ]; then
 		printError "-${o}: all tags must be unique (field name \"${key}\" already specified)."
-		cleanExit $EX_USAGE
+		cleanExit $Ex_Usage
 	fi
 	newTagString="${newTagString}${p}"
 }
@@ -1059,12 +1059,12 @@ checkInputValueLength () {
 
 	if [ ${#value} -lt 1 ]; then
 		printError "-${o}: value of field \"${field}\" must not be empty."
-		cleanExit $EX_USAGE
+		cleanExit $Ex_Usage
 	fi
 }
 
 doListAction () {
-	local ec=$EX_OK
+	local ec=$Ex_Ok
 
 	if hasApetag ; then
 		getApetagSize &&
@@ -1080,7 +1080,7 @@ doListAction () {
 }
 
 doDumpAction () {
-	local ec=$EX_OK
+	local ec=$Ex_Ok
 
 	if hasApetag ; then
 		getApetagSize &&
@@ -1091,13 +1091,13 @@ doDumpAction () {
 		dumpItems ; ec=$?
 	else
 		printWarning "file \"${file}\" does not contain an APEv2 tag."
-		ec=$EX_KO
+		ec=$Ex_Ko
 	fi
 	return $ec
 }
 
 doCopyAction () {
-	local ec=$EX_OK
+	local ec=$Ex_Ok
 
 	if hasApetag ; then
 		getApetagSize &&
@@ -1105,30 +1105,30 @@ doCopyAction () {
 		removeApetag; ec=$?
 	fi
 
-	if [ $ec -eq $EX_OK ]; then
+	if [ $ec -eq $Ex_Ok ]; then
 		if [ "$copyApetagLocation" = 'bottom' ]; then
-			cat "${tempDir}/common/apecopy" >> "$file" 2>/dev/null || ec=$EX_KO
+			cat "${tempDir}/common/apecopy" >> "$file" 2>/dev/null || ec=$Ex_Ko
 		elif [ "$copyApetagLocation" = 'top' ]; then
 			tempFile="${tempProcessDir}/tempfile"
 			cp "${tempDir}/common/apecopy" "$tempFile" >/dev/null 2>&1 &&
 			cat "$file" >> "$tempFile" >/dev/null 2>&1 &&
 			rm -f "$file" >/dev/null 2>&1 &&
-			mv -f "$tempFile" "$file" >/dev/null 2>&1 || ec=$EX_KO
+			mv -f "$tempFile" "$file" >/dev/null 2>&1 || ec=$Ex_Ko
 		else
-			ec=$EX_SOFTWARE
+			ec=$Ex_Software
 		fi
 	else
-		ec=$EX_SOFTWARE
+		ec=$Ex_Software
 	fi
 
-	if [ $ec -eq $EX_SOFTWARE ]; then
+	if [ $ec -eq $Ex_Software ]; then
 		printError "internal software error."
 	fi
 	return $ec
 }
 
 doWriteAction () {
-	local ec=$EX_OK artworkFilename
+	local ec=$Ex_Ok artworkFilename
 
 	if [ $removeAllTags = true ]; then
 		if hasApetag ; then
@@ -1149,7 +1149,7 @@ doWriteAction () {
 		declare -a itemValues=()
 	fi
 
-	if [ $ec -eq $EX_OK ]; then
+	if [ $ec -eq $Ex_Ok ]; then
 		if hasApetag ; then
 			getApetagSize &&
 			getApetagOffset &&
@@ -1160,7 +1160,7 @@ doWriteAction () {
 			removeApetag ; ec=$?
 		fi
 
-		if [ $ec -eq $EX_OK ]; then
+		if [ $ec -eq $Ex_Ok ]; then
 			addNewItems; ec=$?
 			if [ $itemsCount -gt 0 ]; then
 				writeNewApetag &&
@@ -1173,7 +1173,7 @@ doWriteAction () {
 }
 
 doAction () {
-	local ec=$EX_OK
+	local ec=$Ex_Ok
 
 	initFileVars
 	case "$action" in
@@ -1186,11 +1186,11 @@ doAction () {
 }
 
 waitForJobs () {
-	local jn ec=$EX_OK jec
+	local jn ec=$Ex_Ok jec
 
 	for jn in $( jobs -p ); do
 		wait $jn ; jec=$?
-		if [ $jec -ne $EX_OK ]; then
+		if [ $jec -ne $Ex_Ok ]; then
 			ec=$jec
 		fi
 	done
@@ -1200,26 +1200,26 @@ waitForJobs () {
 # main() ======================================================================
 
 declare -r Self_Name='APEv2'
-declare -r Self_Version='1.0.5'
+declare -r Self_Version='1.0.6'
 
-EX_OK=0             # successful termination
-EX_KO=1             # unsuccessful termination
-EX_USAGE=64         # command line usage error
-EX_DATAERR=65       # data format error
-EX_NOINPUT=66       # cannot open input
-EX_NOUSER=67        # addressee unknown
-EX_NOHOST=68        # host name unknown
-EX_UNAVAILABLE=69   # service unavailable
-EX_SOFTWARE=70      # internal software error
-EX_OSERR=71         # system error (e.g., can't fork)
-EX_OSFILE=72        # critical OS file missing
-EX_CANTCREAT=73     # can't create (user) output file
-EX_IOERR=74         # input/output error
-EX_TEMPFAIL=75      # temp failure; user is invited to retry
-EX_PROTOCOL=76      # remote error in protocol
-EX_NOPERM=77        # permission denied
-EX_CONFIG=78        # configuration error
-EX_INTERRUPT=143    # user interruption (Ctrl+C)
+declare -r Ex_Ok=0            # successful termination
+declare -r Ex_Ko=1            # unsuccessful termination
+declare -r Ex_Usage=64        # command line usage error
+declare -r Ex_Data_Err=65     # data format error
+declare -r Ex_No_Input=66     # cannot open input
+declare -r Ex_No_User=67      # addressee unknown
+declare -r Ex_No_Host=68      # host name unknown
+declare -r Ex_Unavailable=69  # service unavailable
+declare -r Ex_Software=70     # internal software error
+declare -r Ex_Os_Err=71       # system error (e.g., can't fork)
+declare -r Ex_Os_File=72      # critical OS file missing
+declare -r Ex_Cant_Create=73	# can't create (user) output file
+declare -r Ex_Io_Err=74       # input/output error
+declare -r Ex_Temp_Fail=75    # temp failure; user is invited to retry
+declare -r Ex_Protocol=76     # remote error in protocol
+declare -r Ex_No_Perm=77      # permission denied
+declare -r Ex_Config_Err=78   # configuration error
+declare -r Ex_Interrupt=143   # user interruption (Ctrl+C)
 
 if [ -n "$LC_ALL" ]; then
 	unset LC_ALL
@@ -1273,13 +1273,13 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 			copyFromFile="$OPTARG"
 			if [ ! -e "$copyFromFile" ]; then
 				printError "-${o}: no such file (\"${copyFromFile}\")."
-				cleanExit $EX_NOINPUT
+				cleanExit $Ex_No_Input
 			elif [ ! -f "$copyFromFile" ]; then
 				printError "-${o}: \"${copyFromFile}\" is not a regular file."
-				cleanExit $EX_NOINPUT
+				cleanExit $Ex_No_Input
 			elif [ ! -r "$copyFromFile" ]; then
 				printError "-${o}: file \"${copyFromFile}\" is not readable (permission denied)."
-				cleanExit $EX_NOPERM
+				cleanExit $Ex_No_Perm
 			fi
 			if [ -z "$action" ]; then action='copy'; fi
 			;;
@@ -1307,7 +1307,7 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 				if [ "${newValue:0:5}" = 'data:' ]; then
 					if [ "${newLowercaseKey:0:9}" = 'cover art' ]; then
 						printError "-${o}: bad syntax for cover art item (use \"artwork:filename\x00:base64\")."
-						cleanExit $EX_USAGE
+						cleanExit $Ex_Usage
 					fi
 					createTempDir
 					if [ "$OS" = 'Linux' ]; then
@@ -1319,7 +1319,7 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 				elif [ "${newValue:0:8}" = 'artwork:' ]; then
 					if [ "${newLowercaseKey:0:9}" != 'cover art' ]; then
 						printError "-${o}: cover art field name must begin with \"Cover Art\"."
-						cleanExit $EX_USAGE
+						cleanExit $Ex_Usage
 					fi
 					createTempDir
 					artworkFilename="${newValue:8}"; artworkFilename="${artworkFilename%:*}"
@@ -1354,23 +1354,23 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 
 			if [ "$o" = 'a' -a "${newLowercaseKey:0:9}" != 'cover art' ]; then
 				printError "-${o}: item field name must begin with \"Cover Art\"."
-				cleanExit $EX_USAGE
+				cleanExit $Ex_Usage
 			elif [ "$o" = 'b' -a "${newLowercaseKey:0:9}" = 'cover art' ]; then
 				printError "-${o}: item field name must NOT begin with \"Cover Art\". To attach cover artwork, use -a instead."
-				cleanExit $EX_USAGE
+				cleanExit $Ex_Usage
 			fi
 
 			newValue="${OPTARG#*=}"
 			checkInputValueLength "$newKey" "$newValue"
 			if [ ! -e "$newValue" ]; then
 				printError "-${o}: no such file (\"${newValue}\")."
-				cleanExit $EX_NOINPUT
+				cleanExit $Ex_No_Input
 			elif [ ! -f "$newValue" ]; then
 				printError "-${o}: \"${newValue}\" is not a regular file."
-				cleanExit $EX_NOINPUT
+				cleanExit $Ex_No_Input
 			elif [ ! -r "$newValue" ]; then
 				printError "-${o}: file \"${newValue}\" is not readable (permission denied)."
-				cleanExit $EX_NOPERM
+				cleanExit $Ex_No_Perm
 			fi
 
 			if [ "$o" = 'a' ]; then
@@ -1378,7 +1378,7 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 					*.jpeg|*.jpg|*.JPEG|*.JPG) artworkFileExtension='jpg' ;;
 					*.png|*.PNG) artworkFileExtension='png' ;;
 					*.gif|*.GIF) artworkFileExtension='gif' ;;
-					*) printError "-${o}: image file extension must be .jpg, .jpeg, .png or .gif." ; cleanExit $EX_DATAERR ;;
+					*) printError "-${o}: image file extension must be .jpg, .jpeg, .png or .gif." ; cleanExit $Ex_Data_Err ;;
 				esac
 			fi
 
@@ -1409,7 +1409,7 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 			dumpFile="${OPTARG#*=}"
 			if [ ${#dumpFile} -lt 1 ]; then
 				printError "-${o}: you must provide a valid file path."
-				cleanExit $EX_USAGE
+				cleanExit $Ex_Usage
 			fi
 
 			dumpKeys[$dumpKeysCount]="$dumpKey"
@@ -1448,11 +1448,11 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 			((deletedKeysCount++))
 			;;
 
-		h) printUsage ; cleanExit $EX_OK ;;
+		h) printUsage ; cleanExit $Ex_Ok ;;
 
-		V) echo "$Self_Name $Self_Version" ; cleanExit $EX_OK ;;
+		V) echo "$Self_Name $Self_Version" ; cleanExit $Ex_Ok ;;
 
-		*) printError "try '$Self_Name -h' for more information." ; cleanExit $EX_USAGE ;;
+		*) printError "try '$Self_Name -h' for more information." ; cleanExit $Ex_Usage ;;
 	esac
 done
 if [ -z "$action" ]; then action='list'; fi
@@ -1460,7 +1460,7 @@ if [ -z "$action" ]; then action='list'; fi
 shift $(( OPTIND - 1 ))
 if [ $# -lt 1 ]; then
 	printWarning "no files specified on the command line; try '$Self_Name -h' for more information."
-	cleanExit $EX_USAGE
+	cleanExit $Ex_Usage
 fi
 
 gotFileErrors=false
@@ -1480,7 +1480,7 @@ for f in "$@"; do
 	fi
 done
 if [ $gotFileErrors = true ]; then
-	cleanExit $EX_NOINPUT
+	cleanExit $Ex_No_Input
 fi
 
 createTempDir
@@ -1508,7 +1508,7 @@ else
 	fi
 fi
 
-ec=$EX_OK
+ec=$Ex_Ok
 if [ "$action" = 'copy' ]; then
 	file="$copyFromFile"
 	initFileVars
@@ -1517,7 +1517,7 @@ if [ "$action" = 'copy' ]; then
 	if hasApetag ; then
 		getApetagSize &&
 		getApetagOffset; ec=$?
-		if [ $ec -eq $EX_OK ]; then
+		if [ $ec -eq $Ex_Ok ]; then
 			if [ "$apetagLocation" = 'bottom' ]; then
 				if [ $hasHeader = true ]; then
 					tail -c $(( 32 + tagSize )) "$copyFromFile" > "${tempDir}/common/apecopy" 2>/dev/null ; ec=$?
@@ -1527,11 +1527,11 @@ if [ "$action" = 'copy' ]; then
 			elif [ "$apetagLocation" = 'top' ]; then
 				head -c $(( 32 + tagSize )) "$copyFromFile" > "${tempDir}/common/apecopy" 2>/dev/null ; ec=$?
 			else
-				ec=$EX_SOFTWARE
+				ec=$Ex_Software
 			fi
-			if [ $ec -ne $EX_OK ]; then
+			if [ $ec -ne $Ex_Ok ]; then
 				printError "internal software error."
-				cleanExit $EX_SOFTWARE
+				cleanExit $Ex_Software
 			fi
 			copyApetagLocation="$apetagLocation"
 
@@ -1539,13 +1539,13 @@ if [ "$action" = 'copy' ]; then
 			getNumberOfItems &&
 			getItems &&
 			listItems; ec=$?
-			if [ $ec -ne $EX_OK ]; then
+			if [ $ec -ne $Ex_Ok ]; then
 				cleanExit $ec
 			fi
 		fi
 	else
 		printWarning "file \"${file}\" does not contain an APEv2 tag."
-		cleanExit $EX_OK
+		cleanExit $Ex_Ok
 	fi
 elif [ "$action" = 'write' ]; then
 	for ((i=0; i<newTagsCount; i++)); do
@@ -1569,14 +1569,14 @@ elif [ "$action" = 'write' ]; then
 	done
 fi
 
-ec=$EX_OK
+ec=$Ex_Ok
 if [ $nProcesses -eq 1 ]; then
 	pn=0
 	for ((fn=0; fn<nFiles; fn++)); do
 		file="${inputFiles[$fn]}"
 		createTempProcessDir
 		doAction; jec=$?
-		if [ $jec -ne $EX_OK ]; then ec=$jec; fi
+		if [ $jec -ne $Ex_Ok ]; then ec=$jec; fi
 		flushOutputQueue
 	done
 else
@@ -1587,7 +1587,7 @@ else
 			doAction &
 		else
 			waitForJobs ; jec=$?
-			if [ $jec -ne $EX_OK ]; then ec=$jec; fi
+			if [ $jec -ne $Ex_Ok ]; then ec=$jec; fi
 			flushOutputQueue
 			pn=0
 			file="${inputFiles[$fn]}"
@@ -1597,7 +1597,7 @@ else
 	done
 
 	waitForJobs ; jec=$?
-	if [ $jec -ne $EX_OK ]; then ec=$jec; fi
+	if [ $jec -ne $Ex_Ok ]; then ec=$jec; fi
 	flushOutputQueue
 fi
 cleanExit $ec
