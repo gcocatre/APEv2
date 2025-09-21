@@ -1200,7 +1200,7 @@ waitForJobs () {
 # main() ======================================================================
 
 declare -r Self_Name='APEv2'
-declare -r Self_Version='1.0.4'
+declare -r Self_Version='1.0.5'
 
 EX_OK=0             # successful termination
 EX_KO=1             # unsuccessful termination
@@ -1474,7 +1474,7 @@ for f in "$@"; do
 	elif [ ! -r "$f" ]; then
 		printError "cannot open \"${f}\" for reading (permission denied)."
 		gotFileErrors=true
-	elif [ "$action" != 'list' -a ! -w "$f" ]; then
+	elif [ "$action" != 'list' -a "$action" != 'dump' -a ! -w "$f" ]; then
 		printError "cannot open \"${f}\" for writing (permission denied)."
 		gotFileErrors=true
 	fi
