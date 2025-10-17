@@ -1019,9 +1019,19 @@ dumpItems () {
 				itemValue="${itemValues[$i]}"
 				if [ "${itemValue:0:15}" = 'binaryfilepath:' ]; then
 					if [ "${dumpFiles[$k]}" = '-' ]; then
-						cat "${itemValue:15}" 2>/dev/null
+						cat "${itemValue##*:}" 2>/dev/null
 					else
-						cp "${itemValue:15}" "${dumpFiles[$k]}" >/dev/null 2>&1
+						case "${dumpFiles[$k]}" in
+							*.)
+								binaryFilename="${itemValue:15}"
+								binaryFilename="${binaryFilename%:*}"
+								case "$binaryFilename" in
+									*) binaryFilename="${dumpFiles[$k]}bin" ;;
+								esac
+								;;
+							*) binaryFilename="${dumpFiles[$k]}" ;;
+						esac
+						cp "${itemValue##*:}" "$binaryFilename" >/dev/null 2>&1
 					fi
 				elif [ "${itemValue:0:16}" = 'artworkfilepath:' ]; then
 					if [ "${dumpFiles[$k]}" = '-' ]; then
@@ -1029,7 +1039,8 @@ dumpItems () {
 					else
 						case "${dumpFiles[$k]}" in
 							*.)
-								artworkFilename="${itemValue:16}"; artworkFilename="${artworkFilename%:*}"
+								artworkFilename="${itemValue:16}"
+								artworkFilename="${artworkFilename%:*}"
 								case "$artworkFilename" in
 									*.png|*.PNG) artworkFilename="${dumpFiles[$k]}png" ;;
 									*.gif|*.GIF) artworkFilename="${dumpFiles[$k]}gif" ;;
