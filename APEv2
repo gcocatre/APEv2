@@ -16,6 +16,9 @@
 # Full APEv2 specification:
 # http://wiki.hydrogenaudio.org/index.php?title=APEv2_specification
 
+declare -r Self_Name='APEv2'
+declare -r Self_Version='1.1.0'
+
 printUsage () {
 	echo "${Self_Name} ${Self_Version}: APEv2 tagger
 Copyright © 2013 - 2025 Guillaume Cocatre-Zilgien
@@ -41,12 +44,11 @@ Tagging Parameters:
   -b F=P    set binary tag item with field name F, with the contents of file P;
             P must be a valid path to the file
 
-  -d F=P    dump value of tag item with field name F into file P; P may be a
+  -d F[=P]  dump value of tag item with field name F into file P; P may be a
             filename, or '-' to dump to STDOUT. This parameter may be used with
             any type of field (artwork, binary or text), and can only be used
-            on its own. When dumping artwork, ${Self_Name} will automatically append
-            the correct file extension, if the provided filename (P) ends with
-            a dot ('.').
+            on its own. If only '-d F' is provided, the internal filename for
+            that field will be used.
 
 
 Output Formatting Parameters:
@@ -1012,14 +1014,20 @@ flushOutputQueue () {
 
 dumpItems () {
 	local itemValue='' itemValueSize=0 dumpFilePath='' someFieldNotFound=false artworkFilename='' artworkFileExtension=''
+	local lowerCaseDumpFile
 
 	for (( k=0; k<dumpKeysCount; k++ )); do
+		lowerCaseDumpFile="$( echo -En "${dumpFiles[$k]}" | tr '[:upper:]' '[:lower:]' )"
 		for ((i=0; i<itemsCount; i++)); do
 			if [ "${itemLowercaseKeys[$i]}" = "${dumpKeys[$k]}" ]; then
 				itemValue="${itemValues[$i]}"
 				if [ "${itemValue:0:15}" = 'binaryfilepath:' ]; then
 					if [ "${dumpFiles[$k]}" = '-' ]; then
 						cat "${itemValue##*:}" 2>/dev/null
+					elif [ "${itemLowercaseKeys[$i]}" = "$lowerCaseDumpFile" ]; then
+						binaryFilename="${itemValue:15}"
+						binaryFilename="${binaryFilename%:*}"
+						cp "${itemValue##*:}" "$binaryFilename" >/dev/null 2>&1
 					else
 						case "${dumpFiles[$k]}" in
 							*.)
@@ -1036,6 +1044,10 @@ dumpItems () {
 				elif [ "${itemValue:0:16}" = 'artworkfilepath:' ]; then
 					if [ "${dumpFiles[$k]}" = '-' ]; then
 						cat "${itemValue##*:}" 2>/dev/null
+					elif [ "${itemLowercaseKeys[$i]}" = "$lowerCaseDumpFile" ]; then
+						artworkFilename="${itemValue:16}"
+						artworkFilename="${artworkFilename%:*}"
+						cp "${itemValue##*:}" "$artworkFilename" >/dev/null 2>&1
 					else
 						case "${dumpFiles[$k]}" in
 							*.)
@@ -1054,6 +1066,8 @@ dumpItems () {
 				else
 					if [ "${dumpFiles[$k]}" = '-' ]; then
 						echo -En "$itemValue" | LC_ALL=C tr '\1' '\0' 2>/dev/null
+					elif [ "${itemLowercaseKeys[$i]}" = "$lowerCaseDumpFile" ]; then
+						echo -En "$itemValue" | LC_ALL=C tr '\1' '\0' > "${itemKeys[$k]}.txt" 2>/dev/null
 					else
 						echo -En "$itemValue" | LC_ALL=C tr '\1' '\0' > "${dumpFiles[$k]}" 2>/dev/null
 					fi
@@ -1243,9 +1257,6 @@ waitForJobs () {
 }
 
 # main() ======================================================================
-
-declare -r Self_Name='APEv2'
-declare -r Self_Version='1.0.6'
 
 declare -r Ex_Ok=0            # successful termination
 declare -r Ex_Ko=1            # unsuccessful termination
@@ -1451,15 +1462,13 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 		d)
 			if [ -z "$action" ]; then action='dump'; fi
 
-			checkInputFieldValueFormat "$OPTARG"
-
 			dumpKey="${OPTARG%%=*}"
 			checkInputFieldLength "$dumpKey"
 			dumpKey="$( echo -En "$dumpKey" | tr '[:upper:]' '[:lower:]' )"
 
 			dumpFile="${OPTARG#*=}"
-			if [ ${#dumpFile} -lt 1 ]; then
-				printError "-${o}: you must provide a valid file path."
+			if [ "$dumpFile" != "$dumpKey" -a ${#dumpFile} -lt 5 ]; then
+				printError "-${o}: you must provide a valid file path (5 chars minimum)."
 				cleanExit $Ex_Usage
 			fi
 
