@@ -1424,27 +1424,13 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 				cleanExit $Ex_No_Perm
 			fi
 
-			if [ "$o" = 'a' ]; then
-				case "$newValue" in
-					*.jpeg|*.jpg|*.JPEG|*.JPG) artworkFileExtension='jpg' ;;
-					*.png|*.PNG) artworkFileExtension='png' ;;
-					*.gif|*.GIF) artworkFileExtension='gif' ;;
-					*) printError "-${o}: image file extension must be .jpg, .jpeg, .png or .gif." ; cleanExit $Ex_Data_Err ;;
-				esac
-			fi
-
 			newKeys[$newTagsCount]="$newKey"
 			newLowercaseKeys[$newTagsCount]="$newLowercaseKey"
+			newValueFileExtension="${newValue##*.}"
+			newValueFilename="${newKey}.${newValueFileExtension}"
 			if [ "$o" = 'a' ]; then
-				case "$newLowercaseKey" in
-					'cover art (front)') newValueFilename="cover.${artworkFileExtension}" ;;
-					'cover art (back)') newValueFilename="back.${artworkFileExtension}" ;;
-					*) newValueFilename="other.${artworkFileExtension}" ;;
-				esac
 				newValues[$newTagsCount]="artworkfilepath:${newValueFilename}:${newValue}"
 			else
-				newValueFileExtension="${newValue##*.}"
-				newValueFilename="${newKey}.${newValueFileExtension}"
 				newValues[$newTagsCount]="binaryfilepath:${newValueFilename}:${newValue}"
 			fi
 			((newTagsCount++))
