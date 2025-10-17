@@ -594,7 +594,7 @@ writeNewApetag () {
 				binaryFilename="${binaryFilename%:*}"
 				binaryFilenameSize="$( echo -En "$binaryFilename" | wc -c | tr -cd '0-9' )"
 				itemValueSize="$( getFileSize "$binaryFilepath" )" # item value size
-				itemValueSize=$(( artworkFilenameSize + 1 + itemValueSize ))
+				itemValueSize=$(( binaryFilenameSize + 1 + itemValueSize ))
 				integerToBinaryData "$itemValueSize" # item value size
 			elif [ "${itemValueTypes[$i]}" = 'artwork' ]; then
 				artworkFilepath="${itemValue##*:}"
@@ -939,8 +939,8 @@ listItems () {
 						roPrefix=''
 					fi
 					if [ "${itemValue:0:15}" = 'binaryfilepath:' ]; then
-						artworkFilename="${itemValue:15}"
-						artworkFilename="${artworkFilename%:*}"
+						binaryFilename="${itemValue:15}"
+						binaryFilename="${binaryFilename%:*}"
 						echo -En "${roPrefix}${itemKey}=data:${binaryFilename}\x00"
 						if [ "$OS" = 'Linux' ]; then
 							base64 -w 0 "${itemValue##*:}"
@@ -1359,9 +1359,9 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 					binaryFilename="${binaryFilename%:*}"
 					binaryFilename="$( echo -en "${newValue:5}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 1 2>/dev/null )"
 					if [ "$OS" = 'Linux' ]; then
-						echo -en "${newValue:8}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -d > "${tempDir}/common/newBinary.${newTagsCount}" 2>/dev/null
+						echo -en "${newValue:5}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -d > "${tempDir}/common/newBinary.${newTagsCount}" 2>/dev/null
 					else
-						echo -en "${newValue:8}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -D -o "${tempDir}/common/newBinary.${newTagsCount}" 2>/dev/null
+						echo -en "${newValue:5}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -D -o "${tempDir}/common/newBinary.${newTagsCount}" 2>/dev/null
 					fi
 					newValues[$newTagsCount]="binaryfilepath:${binaryFilename}:${tempDir}/common/newBinary.${newTagsCount}"
 				elif [ "${newValue:0:8}" = 'artwork:' ]; then
