@@ -680,7 +680,8 @@ getNumberOfItems () {
 }
 
 getItem () {
-	local itemValueSize=0 itemKeyOffset=0 char='' o=0 itemValueType='' itemSize itemIsBinary=false itemIsReadOnly=false p='' itemFilename='' itemDataSize=0
+	local itemValueSize=0 itemKeyOffset=0 char='' o=0 itemValueType='' itemSize itemIsBinary=false itemIsReadOnly=false
+	local p='' itemFilename='' itemDataSize=0
 
 	itemKey='' itemLowercaseKey='' itemValue=''
 
@@ -750,12 +751,24 @@ getItem () {
 			getFilePortion $(( o + ${#itemFilename} + 1 )) $itemDataSize > "${tempProcessDir}/artwork.${i}"
 			itemValue="artworkfilepath:${itemFilename}:${tempProcessDir}/artwork.${i}"
 		else # binary data
-			if [ $itemValueSize -lt 1 -o $itemValueSize -gt 1073741824 ]; then
-				printError "file \"$file\" is corrupted: invalid size (${itemValueSize} B) of binary data."
+			itemFilename="$( dd if="$file" bs=1 skip=$o count=255 2>/dev/null | LC_ALL=C tr '\0\n' '\1\2' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 1 2>/dev/null )"
+			if [ ${#itemFilename} -lt 5 ]; then
+				printError "file \"$file\" is invalid: length of binary filename (${#itemFilename}) should range from 5 to 255 characters."
+				return $Ex_Data_Err
+			elif [ ${#itemFilename} -eq 255 ]; then
+				char="$( readBinaryDecimalInteger $(( o + 255 )) 1 )"
+				if [ $char -ne 0 ]; then # the mandatory null char that separates the filename from the data isn't there
+					printError "file \"$file\" is corrupted: NULL char missing between filename and binary data."
+					return $Ex_Data_Err
+				fi
+			fi
+			itemDataSize=$(( itemValueSize - ${#itemFilename} - 1 ))
+			if [ $itemDataSize -lt 4 -o $itemDataSize -gt 1073741824 ]; then
+				printError "file \"$file\" is corrupted: invalid size (${itemDataSize} B) of binary data."
 				return $Ex_Data_Err
 			fi
-			getFilePortion $o $itemValueSize > "${tempProcessDir}/binary.${i}"
-			itemValue="binaryfilepath:${tempProcessDir}/binary.${i}"
+			getFilePortion $(( o + ${#itemFilename} + 1 )) $itemDataSize > "${tempProcessDir}/binary.${i}"
+			itemValue="binaryfilepath:${itemFilename}:${tempProcessDir}/binary.${i}"
 		fi
 	else
 		if [ $itemValueSize -lt 1 -o $itemValueSize -gt 1073741824 ]; then
