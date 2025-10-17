@@ -875,7 +875,8 @@ addNewItems () {
 }
 
 listItems () {
-	local itemKey='' itemLowercaseKey='' itemValue='' itemValueSize=0 roPrefix='' artworkFilename='' p='' ppn=0
+	local itemKey='' itemLowercaseKey='' itemValue='' itemValueSize=0 roPrefix='' p='' ppn=0
+	local  artworkFilename='' binaryFilename=''
 
 	if [ -z "$sortedItemSizes" ]; then
 		for ((i=0; i<itemsCount; i++)); do
@@ -894,7 +895,7 @@ listItems () {
 					echo -En "$itemKey"
 					echo -en "${NM}=${VC}"
 					if [ "${itemValue:0:15}" = 'binaryfilepath:' ]; then
-						itemValueSize="$( getFileSize "${itemValue:15}" )"
+						itemValueSize="$( getFileSize "${itemValue##*:}" )"
 						echo -En "data: $( getHumanByteSize "${itemValueSize}" )"
 					elif [ "${itemValue:0:16}" = 'artworkfilepath:' ]; then
 						itemValueSize="$( getFileSize "${itemValue##*:}" )"
@@ -913,7 +914,7 @@ listItems () {
 					itemKey="${itemKeys[$i]}"
 					itemValue="${itemValues[$i]}"
 					if [ "${itemValue:0:15}" = 'binaryfilepath:' ]; then
-						itemValueSize="$( getFileSize "${itemValue:15}" )"
+						itemValueSize="$( getFileSize "${itemValue##*:}" )"
 						echo -E "${itemKey}=data: $( getHumanByteSize "${itemValueSize}" )"
 					elif [ "${itemValue:0:16}" = 'artworkfilepath:' ]; then
 						itemValueSize="$( getFileSize "${itemValue##*:}" )"
@@ -938,16 +939,19 @@ listItems () {
 						roPrefix=''
 					fi
 					if [ "${itemValue:0:15}" = 'binaryfilepath:' ]; then
-						echo -En "${roPrefix}${itemKey}=data:"
+						artworkFilename="${itemValue:15}"
+						artworkFilename="${artworkFilename%:*}"
+						echo -En "${roPrefix}${itemKey}=data:${binaryFilename}\x00"
 						if [ "$OS" = 'Linux' ]; then
-							base64 -w 0 "${itemValue:15}"
+							base64 -w 0 "${itemValue##*:}"
 							echo
 						else
 							# base64 on macOS outputs a trailing new line already
-							base64 -b 0 -i "${itemValue:15}"
+							base64 -b 0 -i "${itemValue##*:}"
 						fi
 					elif [ "${itemValue:0:16}" = 'artworkfilepath:' ]; then
-						artworkFilename="${itemValue:16}"; artworkFilename="${artworkFilename%:*}"
+						artworkFilename="${itemValue:16}"
+						artworkFilename="${artworkFilename%:*}"
 						echo -En "${roPrefix}${itemKey}=artwork:${artworkFilename}\x00"
 						if [ "$OS" = 'Linux' ]; then
 							base64 -w 0 "${itemValue##*:}"
@@ -971,10 +975,14 @@ listItems () {
 					itemKey="${itemKeys[$i]}"
 					itemValue="${itemValues[$i]}"
 					if [ "${itemValue:0:15}" = 'binaryfilepath:' ]; then
-						echo -En "${itemKeys[$i]}="
-						cat "${itemValue:15}"
+						binaryFilename="${itemValue:15}";
+						binaryFilename="${binaryFilename%:*}"
+						echo -En "${itemKeys[$i]}=${binaryFilename}"
+						echo -en "\x00"
+						cat "${itemValue##*:}"
 					elif [ "${itemValue:0:16}" = 'artworkfilepath:' ]; then
-						artworkFilename="${itemValue:16}"; artworkFilename="${artworkFilename%:*}"
+						artworkFilename="${itemValue:16}";
+						artworkFilename="${artworkFilename%:*}"
 						echo -En "${itemKeys[$i]}=${artworkFilename}"
 						echo -en "\x00"
 						cat "${itemValue##*:}"
