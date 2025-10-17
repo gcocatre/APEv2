@@ -1016,7 +1016,7 @@ flushOutputQueue () {
 
 dumpItems () {
 	local itemValue='' itemValueSize=0 dumpFilePath='' someFieldNotFound=false artworkFilename='' artworkFileExtension=''
-	local lowerCaseDumpFile
+	local lowerCaseDumpFile path
 
 	for (( k=0; k<dumpKeysCount; k++ )); do
 		lowerCaseDumpFile="$( echo -En "${dumpFiles[$k]}" | tr '[:upper:]' '[:lower:]' )"
@@ -1037,6 +1037,13 @@ dumpItems () {
 							mkdir -p "${dumpFiles[$k]}" 1>/dev/null || return $Ex_Cant_Create
 						fi
 						cp "${itemValue##*:}" "${dumpFiles[$k]}${binaryFilename}" 1>/dev/null || return $Ex_Cant_Create
+					elif [ "${lowerCaseDumpFile%/*}" != "${lowerCaseDumpFile##*/}" ]; then # path and filename
+						path="${dumpFiles[$k]%/*}"
+						binaryFilename="${dumpFiles[$k]##*/}"
+						if [ ! -d "$path" ]; then
+							mkdir -p "$path" 1>/dev/null || return $Ex_Cant_Create
+						fi
+						cp "${itemValue##*:}" "${path}/${binaryFilename}" 1>/dev/null || return $Ex_Cant_Create
 					else
 						binaryFilename="${dumpFiles[$k]}"
 						cp "${itemValue##*:}" "$binaryFilename" 1>/dev/null
@@ -1055,6 +1062,13 @@ dumpItems () {
 							mkdir -p "${dumpFiles[$k]}" 1>/dev/null || return $Ex_Cant_Create
 						fi
 						cp "${itemValue##*:}" "${dumpFiles[$k]}${artworkFilename}" 1>/dev/null || return $Ex_Cant_Create
+					elif [ "${lowerCaseDumpFile%/*}" != "${lowerCaseDumpFile##*/}" ]; then # path and filename
+						path="${dumpFiles[$k]%/*}"
+						artworkFilename="${dumpFiles[$k]##*/}"
+						if [ ! -d "$path" ]; then
+							mkdir -p "$path" 1>/dev/null || return $Ex_Cant_Create
+						fi
+						cp "${itemValue##*:}" "${path}/${artworkFilename}" 1>/dev/null || return $Ex_Cant_Create
 					else
 						artworkFilename="${dumpFiles[$k]}"
 						cp "${itemValue##*:}" "$artworkFilename" 1>/dev/null
