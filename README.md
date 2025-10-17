@@ -33,7 +33,9 @@ Default action: list tags, with colored field names.
             filename, or '-' to dump to STDOUT. This parameter may be used with
             any type of field (artwork, binary or text), and can only be used
             on its own. If only '-d F' is provided, the internal filename for
-            that field will be used.
+            that field will be used. If P ends with '/', then the internal
+            filename will be stored in the provided path, which will be created
+            if it doesn't exist, if possible.
 ```
 
 ## Output Formatting Parameters:
