@@ -1355,19 +1355,23 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 						cleanExit $Ex_Usage
 					fi
 					createTempDir
+					binaryFilename="${newValue:5}"
+					binaryFilename="${binaryFilename%:*}"
+					binaryFilename="$( echo -en "${newValue:5}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 1 2>/dev/null )"
 					if [ "$OS" = 'Linux' ]; then
-						echo -En "${newValue:5}" | base64 -d > "${tempDir}/common/newBinary.${newTagsCount}" 2>/dev/null
+						echo -en "${newValue:8}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -d > "${tempDir}/common/newBinary.${newTagsCount}" 2>/dev/null
 					else
-						echo -En "${newValue:5}" | base64 -D -o "${tempDir}/common/newBinary.${newTagsCount}" >/dev/null 2>&1
+						echo -en "${newValue:8}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -D -o "${tempDir}/common/newBinary.${newTagsCount}" 2>/dev/null
 					fi
-					newValues[$newTagsCount]="binaryfilepath:${tempDir}/common/newBinary.${newTagsCount}"
+					newValues[$newTagsCount]="binaryfilepath:${binaryFilename}:${tempDir}/common/newBinary.${newTagsCount}"
 				elif [ "${newValue:0:8}" = 'artwork:' ]; then
 					if [ "${newLowercaseKey:0:9}" != 'cover art' ]; then
 						printError "-${o}: cover art field name must begin with \"Cover Art\"."
 						cleanExit $Ex_Usage
 					fi
 					createTempDir
-					artworkFilename="${newValue:8}"; artworkFilename="${artworkFilename%:*}"
+					artworkFilename="${newValue:8}"
+					artworkFilename="${artworkFilename%:*}"
 					artworkFilename="$( echo -en "${newValue:8}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 1 2>/dev/null )"
 					if [ "$OS" = 'Linux' ]; then
 						echo -en "${newValue:8}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -d > "${tempDir}/common/newArtwork.${newTagsCount}" 2>/dev/null
@@ -1437,7 +1441,9 @@ while getopts 'CzZDhVit:r:Ra:b:d:f:' o ; do
 				esac
 				newValues[$newTagsCount]="artworkfilepath:${newValueFilename}:${newValue}"
 			else
-				newValues[$newTagsCount]="binaryfilepath:${newValue}"
+				newValueFileExtension="${newValue##*.}"
+				newValueFilename="${newKey}.${newValueFileExtension}"
+				newValues[$newTagsCount]="binaryfilepath:${newValueFilename}:${newValue}"
 			fi
 			((newTagsCount++))
 			;;
@@ -1595,14 +1601,18 @@ if [ "$action" = 'copy' ]; then
 elif [ "$action" = 'write' ]; then
 	for ((i=0; i<newTagsCount; i++)); do
 		if [ "${newValues[$i]:0:5}" = 'data:' ]; then
+			binaryFilename="${newValues[$i]:5}"
+			binaryFilename="${binaryFilename%:*}"
+			binaryFilename="$( echo -en "${newValues[$i]:5}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 1 2>/dev/null )"
 			if [ "$OS" = 'Linux' ]; then
-				echo -En "${newValues[$i]:5}" | base64 -d > "${tempDir}/common/newBinary.${i}" 2>/dev/null
+				echo -en "${newValues[$i]:5}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -d > "${tempDir}/common/newBinary.${i}" 2>/dev/null
 			else
-				echo -En "${newValues[$i]:5}" | base64 -D -o "${tempDir}/common/newBinary.${i}" >/dev/null 2>&1
+				echo -en "${newValues[$i]:5}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -D -o "${tempDir}/common/newBinary.${i}" 2>/dev/null
 			fi
-			newValues[$i]="binaryfilepath:${tempDir}/common/newBinary.${i}"
+			newValues[$i]="binaryfilepath:${binaryFilename}:${tempDir}/common/newBinary.${i}"
 		elif [ "${newValues[$i]:0:8}" = 'artwork:' ]; then
-			artworkFilename="${newValues[$i]:8}"; artworkFilename="${artworkFilename%:*}"
+			artworkFilename="${newValues[$i]:8}"
+			artworkFilename="${artworkFilename%:*}"
 			artworkFilename="$( echo -en "${newValues[$i]:8}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 1 2>/dev/null )"
 			if [ "$OS" = 'Linux' ]; then
 				echo -en "${newValues[$i]:8}" | LC_ALL=C tr '\0' '\1' 2>/dev/null | LC_ALL=C cut -d "$( echo -en "\x01" )" -f 2 2>/dev/null | base64 -d > "${tempDir}/common/newArtwork.${i}" 2>/dev/null
