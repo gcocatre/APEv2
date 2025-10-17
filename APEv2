@@ -1015,8 +1015,7 @@ flushOutputQueue () {
 }
 
 dumpItems () {
-	local itemValue='' itemValueSize=0 dumpFilePath='' someFieldNotFound=false artworkFilename='' artworkFileExtension=''
-	local lowerCaseDumpFile path
+	local itemValue binaryFilename lowerCaseDumpFile dumpFilePath someFieldNotFound=false
 
 	for (( k=0; k<dumpKeysCount; k++ )); do
 		lowerCaseDumpFile="$( echo -En "${dumpFiles[$k]}" | tr '[:upper:]' '[:lower:]' )"
@@ -1024,54 +1023,35 @@ dumpItems () {
 			if [ "${itemLowercaseKeys[$i]}" = "${dumpKeys[$k]}" ]; then
 				itemValue="${itemValues[$i]}"
 				if [ "${itemValue:0:15}" = 'binaryfilepath:' ]; then
+					binaryFilename="${itemValue:15}"
+				elif [ "${itemValue:0:16}" = 'artworkfilepath:' ]; then
+					binaryFilename="${itemValue:16}"
+				fi
+
+				if [ -n "$binaryFilename" ]; then
 					if [ "${dumpFiles[$k]}" = '-' ]; then
 						cat "${itemValue##*:}"
 					elif [ "${itemLowercaseKeys[$i]}" = "$lowerCaseDumpFile" ]; then
-						binaryFilename="${itemValue:15}"
 						binaryFilename="${binaryFilename%:*}"
 						cp "${itemValue##*:}" "$binaryFilename" 1>/dev/null
 					elif [ -z "${lowerCaseDumpFile##*/}" ]; then # path
-						binaryFilename="${itemValue:15}"
 						binaryFilename="${binaryFilename%:*}"
-						if [ ! -d "${dumpFiles[$k]}" ]; then
-							mkdir -p "${dumpFiles[$k]}" 1>/dev/null || return $Ex_Cant_Create
+						if ! mkdir -p "${dumpFiles[$k]}" 1>/dev/null 2>/dev/null; then
+							printError "directory \"${dumpFiles[$k]}\" doesn't exist and cannot be created"
+							return $Ex_Cant_Create
 						fi
 						cp "${itemValue##*:}" "${dumpFiles[$k]}${binaryFilename}" 1>/dev/null || return $Ex_Cant_Create
 					elif [ "${lowerCaseDumpFile%/*}" != "${lowerCaseDumpFile##*/}" ]; then # path and filename
-						path="${dumpFiles[$k]%/*}"
+						dumpFilePath="${dumpFiles[$k]%/*}"
 						binaryFilename="${dumpFiles[$k]##*/}"
-						if [ ! -d "$path" ]; then
-							mkdir -p "$path" 1>/dev/null || return $Ex_Cant_Create
+						if ! mkdir -p "${dumpFilePath}" 1>/dev/null 2>/dev/null; then
+							printError "directory \"${dumpFilePath}\" doesn't exist and cannot be created"
+							return $Ex_Cant_Create
 						fi
-						cp "${itemValue##*:}" "${path}/${binaryFilename}" 1>/dev/null || return $Ex_Cant_Create
+						cp "${itemValue##*:}" "${dumpFilePath}/${binaryFilename}" 1>/dev/null || return $Ex_Cant_Create
 					else
 						binaryFilename="${dumpFiles[$k]}"
 						cp "${itemValue##*:}" "$binaryFilename" 1>/dev/null
-					fi
-				elif [ "${itemValue:0:16}" = 'artworkfilepath:' ]; then
-					if [ "${dumpFiles[$k]}" = '-' ]; then
-						cat "${itemValue##*:}" 2>/dev/null
-					elif [ "${itemLowercaseKeys[$i]}" = "$lowerCaseDumpFile" ]; then
-						artworkFilename="${itemValue:16}"
-						artworkFilename="${artworkFilename%:*}"
-						cp "${itemValue##*:}" "$artworkFilename" 1>/dev/null
-					elif [ -z "${lowerCaseDumpFile##*/}" ]; then # path
-						artworkFilename="${itemValue:16}"
-						artworkFilename="${artworkFilename%:*}"
-						if [ ! -d "${dumpFiles[$k]}" ]; then
-							mkdir -p "${dumpFiles[$k]}" 1>/dev/null || return $Ex_Cant_Create
-						fi
-						cp "${itemValue##*:}" "${dumpFiles[$k]}${artworkFilename}" 1>/dev/null || return $Ex_Cant_Create
-					elif [ "${lowerCaseDumpFile%/*}" != "${lowerCaseDumpFile##*/}" ]; then # path and filename
-						path="${dumpFiles[$k]%/*}"
-						artworkFilename="${dumpFiles[$k]##*/}"
-						if [ ! -d "$path" ]; then
-							mkdir -p "$path" 1>/dev/null || return $Ex_Cant_Create
-						fi
-						cp "${itemValue##*:}" "${path}/${artworkFilename}" 1>/dev/null || return $Ex_Cant_Create
-					else
-						artworkFilename="${dumpFiles[$k]}"
-						cp "${itemValue##*:}" "$artworkFilename" 1>/dev/null
 					fi
 				else
 					if [ "${dumpFiles[$k]}" = '-' ]; then
@@ -1082,6 +1062,7 @@ dumpItems () {
 						echo -En "$itemValue" | LC_ALL=C tr '\1' '\0' > "${dumpFiles[$k]}" 2>/dev/null
 					fi
 				fi
+
 				continue 2
 			fi
 		done
