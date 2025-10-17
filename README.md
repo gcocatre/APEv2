@@ -29,12 +29,11 @@ Default action: list tags, with colored field names.
   -b F=P    set binary tag item with field name F, with the contents of file P;
             P must be a valid path to the file
 
-  -d F=P    dump value of tag item with field name F into file P; P may be a
+  -d F[=P]  dump value of tag item with field name F into file P; P may be a
             filename, or '-' to dump to STDOUT. This parameter may be used with
             any type of field (artwork, binary or text), and can only be used
-            on its own. When dumping artwork, APEv2 will automatically append
-            the correct file extension, if the provided filename (P) ends with
-            a dot ('.').
+            on its own. If only '-d F' is provided, the internal filename for
+            that field will be used.
 ```
 
 ## Output Formatting Parameters:
