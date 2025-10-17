@@ -525,7 +525,8 @@ removeApetag () {
 }
 
 writeNewApetag () {
-	local itemKey itemValue itemValueSize itemSize itemValueTypes=() fileDir='' tempDirLength p artworkFilenameSize=0 artworkFilepath artworkFilename binaryFilepath
+	local itemKey itemValue itemValueSize itemSize itemValueTypes=() fileDir='' tempDirLength p
+	local artworkFilepath artworkFilename artworkFilenameSize=0 binaryFilepath binaryFilename binaryFilenameSize=0
 
 	sortedItemSizes=''
 	fileDir="$( dirname "$file" )"
@@ -538,13 +539,17 @@ writeNewApetag () {
 		if [ "${itemValue:0:15}" = 'binaryfilepath:' ]; then
 			itemValueTypes[$i]='binary'
 			binaryFilepath="${itemValue##*:}"
+			binaryFilename="${itemValue:15}"
+			binaryFilename="${binaryFilename%:*}"
 			itemSize="$( getFileSize "$binaryFilepath" )"
-			itemSize=$(( 4 + 4 + ${#itemKey} + 1 + itemSize ))
+			binaryFilenameSize="$( echo -En "$binaryFilename" | wc -c | tr -cd '0-9' )"
+			itemSize=$(( 4 + 4 + ${#itemKey} + 1 + binaryFilenameSize + 1 + itemSize ))
 			sortedItemSizes="${sortedItemSizes}$( echo -en "\n${itemSize} ${i}" )"
 		elif [ "${itemValue:0:16}" = 'artworkfilepath:' ]; then
 			itemValueTypes[$i]='artwork'
 			artworkFilepath="${itemValue##*:}"
-			artworkFilename="${itemValue:16}"; artworkFilename="${artworkFilename%:*}"
+			artworkFilename="${itemValue:16}"
+			artworkFilename="${artworkFilename%:*}"
 			itemSize="$( getFileSize "$artworkFilepath" )"
 			artworkFilenameSize="$( echo -En "$artworkFilename" | wc -c | tr -cd '0-9' )"
 			itemSize=$(( 4 + 4 + ${#itemKey} + 1 + artworkFilenameSize + 1 + itemSize ))
@@ -585,10 +590,16 @@ writeNewApetag () {
 			itemValue="${itemValues[$i]}"
 			if [ "${itemValueTypes[$i]}" = 'binary' ]; then
 				binaryFilepath="${itemValue##*:}"
-				integerToBinaryData "$( getFileSize "$binaryFilepath" )" # item value size
+				binaryFilename="${itemValue:15}"
+				binaryFilename="${binaryFilename%:*}"
+				binaryFilenameSize="$( echo -En "$binaryFilename" | wc -c | tr -cd '0-9' )"
+				itemValueSize="$( getFileSize "$binaryFilepath" )" # item value size
+				itemValueSize=$(( artworkFilenameSize + 1 + itemValueSize ))
+				integerToBinaryData "$itemValueSize" # item value size
 			elif [ "${itemValueTypes[$i]}" = 'artwork' ]; then
 				artworkFilepath="${itemValue##*:}"
-				artworkFilename="${itemValue:16}"; artworkFilename="${artworkFilename%:*}"
+				artworkFilename="${itemValue:16}"
+				artworkFilename="${artworkFilename%:*}"
 				artworkFilenameSize="$( echo -En "$artworkFilename" | wc -c | tr -cd '0-9' )"
 				itemValueSize="$( getFileSize "$artworkFilepath" )" # item value size
 				itemValueSize=$(( artworkFilenameSize + 1 + itemValueSize ))
@@ -616,6 +627,8 @@ writeNewApetag () {
 			echo -En "$itemKey"
 			echo -en "\x00"
 			if [ "${itemValueTypes[$i]}" = 'binary' ]; then
+				echo -En "$binaryFilename"
+				echo -en "\x00"
 				cat "$binaryFilepath" 2>/dev/null
 			elif [ "${itemValueTypes[$i]}" = 'artwork' ]; then
 				echo -En "$artworkFilename"
