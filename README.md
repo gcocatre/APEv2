@@ -6,6 +6,8 @@ https://github.com/gcocatre/APEv2
 
 APEv2 is a command-line utility that adds, sets or removes APEv2 tags to audio files.
 
+This has been superseeded by https://github.com/gcocatre/schag.
+
 ## Usage
 
 `APEv2 [ PARAMETERS ] FILE(S)`
